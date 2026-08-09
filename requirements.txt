@@ -2,3 +2,8 @@ yt_dlp
 pydub
 audioop-lts
 openai-whisper
+langchain
+langchain-text-splitters
+python-dotenv
+langchain-google-genai
+langchain-chroma
