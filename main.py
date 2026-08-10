@@ -1,10 +1,33 @@
+import hashlib
+import json
+import os
 from utils.audio_processor import process_input
 from core.transcriber import transcribe_auto
 from core.summarise import summarise, generate_title
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions
 from core.engine import build_rag_chain, load_rag_chain, ask_question
 
+_SESSIONS_FILE = "chroma-db/sessions.json"
+
+def _get_session_id(source: str) -> str:
+    # deterministic 8-char hash so the same source always maps to the same store
+    return hashlib.md5(source.encode()).hexdigest()[:8]
+
+def _save_session(session_id: str, source: str, title: str):
+    os.makedirs("chroma-db", exist_ok=True)
+    sessions = _load_sessions()
+    sessions[session_id] = {"source": source, "title": title}
+    with open(_SESSIONS_FILE, "w") as f:
+        json.dump(sessions, f, indent=2)
+
+def _load_sessions() -> dict:
+    if not os.path.exists(_SESSIONS_FILE):
+        return {}
+    with open(_SESSIONS_FILE) as f:
+        return json.load(f)
+
 def run_pipeline(source: str) -> dict:
+    session_id = _get_session_id(source)
     print("Starting video assistant")
 
     chunks = process_input(source)
@@ -21,7 +44,8 @@ def run_pipeline(source: str) -> dict:
     key_decisions = extract_key_decisions(transcript)
     questions = extract_questions(transcript)
 
-    rag_chain = build_rag_chain(transcript)
+    rag_chain = build_rag_chain(transcript, session_id)
+    _save_session(session_id, source, title)
 
     return {
         "title": title,
@@ -51,10 +75,19 @@ if __name__ == "__main__":
     mode = input("Choose (1/2): ").strip()
 
     if mode == "2":
-        # skip re-processing; load the vector store that was saved during the last run
-        print("Loading previous session...")
-        rag_chain = load_rag_chain()
-        chat_loop(rag_chain)
+        sessions = _load_sessions()
+        if not sessions:
+            print("No previous sessions found. Process a video first.")
+        else:
+            print("\nAvailable sessions:")
+            for sid, info in sessions.items():
+                print(f"  [{sid}] {info['title']} — {info['source']}")
+            sid = input("Enter session ID to resume: ").strip()
+            if sid not in sessions:
+                print("Invalid session ID.")
+            else:
+                rag_chain = load_rag_chain(sid)
+                chat_loop(rag_chain)
     else:
         source = input("Enter YouTube URL or local file path: ").strip()
         result = run_pipeline(source)

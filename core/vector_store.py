@@ -9,8 +9,9 @@ load_dotenv()
 def get_embeddings():
     return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
-def build_vector_store(transcript: str) -> Chroma:
-    print("Building vector store")
+def build_vector_store(transcript: str, session_id: str) -> Chroma:
+    persist_dir = f"chroma-db/{session_id}"
+    print(f"Building vector store (session: {session_id})")
 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     chunks = text_splitter.split_text(transcript)
@@ -22,18 +23,19 @@ def build_vector_store(transcript: str) -> Chroma:
 
     vector_store = Chroma.from_documents(
         documents=docs,
-        collection_name="transcript_vectors",
+        collection_name=session_id,
         embedding=get_embeddings(),
-        persist_directory="chroma-db",
+        persist_directory=persist_dir,
     )
 
     return vector_store
 
-def load_vector_store() -> Chroma:
+def load_vector_store(session_id: str) -> Chroma:
+    persist_dir = f"chroma-db/{session_id}"
     return Chroma(
-        collection_name="transcript_vectors",
+        collection_name=session_id,
         embedding_function=get_embeddings(),
-        persist_directory="chroma-db"
+        persist_directory=persist_dir,
     )
 
 # This will need to be invoked wherever called

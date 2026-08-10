@@ -47,13 +47,13 @@ def _build_chain(retriever):
         | StrOutputParser()
     )
 
-def build_rag_chain(transcript: str):
+def build_rag_chain(transcript: str, session_id: str):
     # call this on first run: embeds the transcript, saves the vector store to disk, returns the Q&A chain
-    return _build_chain(get_retriever(build_vector_store(transcript), k=4))
+    return _build_chain(get_retriever(build_vector_store(transcript, session_id), k=4))
 
-def load_rag_chain():
+def load_rag_chain(session_id: str):
     # call this on subsequent runs: skips re-embedding by loading the existing vector store from disk
-    return _build_chain(get_retriever(load_vector_store(), k=4))
+    return _build_chain(get_retriever(load_vector_store(session_id), k=4))
 
 def ask_question(rag_chain, question: str) -> str:
     # invokes the chain with a plain question string; the retriever + prompt handle context injection internally
