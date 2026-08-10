@@ -28,3 +28,17 @@ def build_vector_store(transcript: str) -> Chroma:
     )
 
     return vector_store
+
+def load_vector_store() -> Chroma:
+    return Chroma(
+        collection_name="transcript_vectors",
+        embedding_function=get_embeddings(),
+        persist_directory="chroma-db"
+    )
+
+# This will need to be invoked wherever called
+def get_retriever(vector_store: Chroma, k: int = 4):
+    return vector_store.as_retriever(
+        search_type="mmr",
+        search_kwargs={"k":k}
+    )

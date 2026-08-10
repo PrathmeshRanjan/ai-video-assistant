@@ -5,6 +5,9 @@ from sarvamai.core.api_error import ApiError
 
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
 
+# BCP-47 language codes Sarvam supports for translation to English
+_SARVAM_SUPPORTED_LANGS = {"hi", "bn", "kn", "ml", "mr", "or", "pa", "ta", "te", "gu"}
+
 _model = None
 _sarvam_client = None
 
@@ -15,6 +18,26 @@ def load_model():
         _model = whisper.load_model(WHISPER_MODEL)
         print("Whisper model loaded successfully")
     return _model
+
+def detect_language(audio_path: str) -> str:
+    # runs Whisper's language detection on the first 30s of audio; returns ISO 639-1 code e.g. "hi", "en"
+    model = load_model()
+    audio = whisper.load_audio(audio_path)
+    audio = whisper.pad_or_trim(audio)
+    mel = whisper.log_mel_spectrogram(audio).to(model.device)
+    _, probs = model.detect_language(mel)
+    detected = max(probs, key=probs.get)
+    print(f"Detected language: {detected}")
+    return detected
+
+def transcribe_auto(chunks: list) -> str:
+    # detects language from the first chunk and routes to Sarvam (Indian langs) or Whisper (everything else)
+    lang = detect_language(chunks[0])
+    if lang in _SARVAM_SUPPORTED_LANGS:
+        print(f"Routing to Sarvam AI for '{lang}' → English translation")
+        return transcribe_all_sarvam(chunks)
+    print(f"Routing to Whisper for '{lang}' transcription")
+    return transcribe_all(chunks)
 
 def _get_sarvam_client():
     global _sarvam_client

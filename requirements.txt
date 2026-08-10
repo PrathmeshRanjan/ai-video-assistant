@@ -7,3 +7,5 @@ langchain-text-splitters
 python-dotenv
 langchain-google-genai
 langchain-chroma
+langchain-groq
+langchain-mistralai

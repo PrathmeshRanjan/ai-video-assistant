@@ -3,7 +3,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 def get_llm():
-    return init_chat_model("groq:qwen3.6-27b")
+    return init_chat_model("groq:llama-3.3-70b-versatile")
 
 def build_chain(system_prompt: str):
     llm = get_llm()
