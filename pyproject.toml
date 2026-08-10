@@ -16,6 +16,7 @@ dependencies = [
     "pydub>=0.25.1",
     "python-dotenv>=1.2.2",
     "sarvamai>=0.1.30",
+    "streamlit>=1.61.1",
     "whisper>=1.1.10",
     "yt-dlp>=2026.7.4",
 ]

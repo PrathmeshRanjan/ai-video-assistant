@@ -2,6 +2,7 @@ yt_dlp
 pydub
 audioop-lts
 openai-whisper
+streamlit
 langchain
 langchain-text-splitters
 python-dotenv
