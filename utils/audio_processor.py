@@ -11,6 +11,7 @@ def download_youtube_audio(url: str) -> str:
     ydl_opts = {
         "format": "bestaudio/best",       # prefer audio-only stream; fall back to best muxed
         "outtmpl": output_path,
+        "cookiesfrombrowser": ("chrome",), # passes your Chrome cookies to bypass YouTube 403s
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",  # remux/transcode to WAV via ffmpeg after download
@@ -34,7 +35,7 @@ def convert_to_wav(input_path: str) -> str:
     audio.export(output_path, format="wav")
     return output_path
 
-def chunk_audio(wav_path: str, chunk_seconds: int = 30) -> list:
+def chunk_audio(wav_path: str, chunk_seconds: int = 600) -> list:
     audio = AudioSegment.from_wav(wav_path)
     chunk_ms = chunk_seconds * 1000  # pydub works in milliseconds
 

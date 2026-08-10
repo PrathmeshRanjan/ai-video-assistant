@@ -1,5 +1,7 @@
 import whisper
 import os
+import tempfile
+from pydub import AudioSegment
 from sarvamai import SarvamAI
 from sarvamai.core.api_error import ApiError
 
@@ -61,6 +63,25 @@ def transcribe_all(chunks: list, translate: bool = False) -> str:
     return full_transcript.strip()
 
 def transcribe_chunk_sarvam(chunk_path: str) -> str:
+    # Sarvam's 30s API limit is handled here — longer chunks are split into 30s pieces internally
+    audio = AudioSegment.from_wav(chunk_path)
+    _30s = 30 * 1000
+
+    if len(audio) <= _30s:
+        return _call_sarvam(chunk_path)
+
+    texts = []
+    for start in range(0, len(audio), _30s):
+        sub = audio[start : start + _30s]
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+            sub.export(tmp.name, format="wav")
+            try:
+                texts.append(_call_sarvam(tmp.name))
+            finally:
+                os.unlink(tmp.name)
+    return " ".join(texts)
+
+def _call_sarvam(chunk_path: str) -> str:
     # mode="translate" converts Hindi speech directly to English text
     client = _get_sarvam_client()
     try:
