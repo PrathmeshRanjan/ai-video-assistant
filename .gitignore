@@ -1,2 +1,9 @@
 .env
 */__pycache__
+downloads/
+chroma-db/
+*.wav
+*.mp3
+*.mp4
+*.webm
+*.m4a
