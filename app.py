@@ -19,7 +19,7 @@ try:
 except Exception:
     pass
 
-from utils.audio_processor import fetch_youtube_transcript, is_url, process_input
+from utils.audio_processor import process_input
 from core.transcriber import transcribe_auto
 from core.summarise import summarise, generate_title
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions
@@ -219,20 +219,11 @@ with st.sidebar:
                         cookie_path = tmp_cookies.name
 
                 with st.status("Processing video…", expanded=True) as status:
-                    if is_url(source):
-                        st.write("📄 Checking YouTube captions…")
-                        transcript = fetch_youtube_transcript(source, cookie_path=cookie_path)
-                    else:
-                        transcript = None
+                    st.write("🎵 Downloading & chunking audio…")
+                    chunks = process_input(source, cookie_path=cookie_path)
 
-                    if transcript:
-                        st.write("✅ Using YouTube captions…")
-                    else:
-                        st.write("🎵 Downloading & chunking audio…")
-                        chunks = process_input(source, cookie_path=cookie_path)
-
-                        st.write("🗣️ Transcribing audio…")
-                        transcript = transcribe_auto(chunks)
+                    st.write("🗣️ Transcribing audio…")
+                    transcript = transcribe_auto(chunks)
 
                     st.write("📝 Generating summary…")
                     summary = summarise(transcript)
