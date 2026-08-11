@@ -1,7 +1,7 @@
 import hashlib
 import json
 import os
-from utils.audio_processor import process_input
+from utils.audio_processor import fetch_youtube_transcript, is_url, process_input
 from core.transcriber import transcribe_auto
 from core.summarise import summarise, generate_title
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions
@@ -30,9 +30,10 @@ def run_pipeline(source: str) -> dict:
     session_id = _get_session_id(source)
     print("Starting video assistant")
 
-    chunks = process_input(source)
-
-    transcript = transcribe_auto(chunks)
+    transcript = fetch_youtube_transcript(source) if is_url(source) else None
+    if transcript is None:
+        chunks = process_input(source)
+        transcript = transcribe_auto(chunks)
     print("Raw transcription (first 300 chars): ", transcript[:3000])
 
     summary = summarise(transcript)
@@ -100,4 +101,4 @@ if __name__ == "__main__":
         print(f"\n❓ Open Questions:\n{result['open_questions']}")
         print("=" * 60)
 
-        chat_loop(result["rag_chain"])    
+        chat_loop(result["rag_chain"])
