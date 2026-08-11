@@ -11,7 +11,11 @@ def download_youtube_audio(url: str) -> str:
     ydl_opts = {
         "format": "bestaudio/best",       # prefer audio-only stream; fall back to best muxed
         "outtmpl": output_path,
-        "cookiesfrombrowser": ("chrome",), # passes your Chrome cookies to bypass YouTube 403s
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        },
+        # use cookies.txt if present (upload to repo root for age-restricted/private videos)
+        **({"cookiefile": "cookies.txt"} if os.path.exists("cookies.txt") else {}),
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",  # remux/transcode to WAV via ffmpeg after download
