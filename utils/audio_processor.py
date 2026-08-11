@@ -13,6 +13,8 @@ def _youtube_opts(output_path: str, cookie_path: str | None, format_selector: st
         "outtmpl": output_path,
         "noplaylist": True,
         "cachedir": False,
+        "js_runtimes": {"node": {}},
+        "remote_components": {"ejs:github"},
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         },
@@ -49,8 +51,8 @@ def download_youtube_audio(url: str, cookie_path: str | None = None) -> str:
             last_error = exc
 
     raise RuntimeError(
-        "Could not download audio from this YouTube link. If it is age-restricted, private, "
-        "or blocked on Streamlit Cloud, try uploading a fresh cookies.txt export."
+        "Could not download audio from this YouTube link. Last yt-dlp error: "
+        f"{last_error}"
     ) from last_error
 
 def convert_to_wav(input_path: str) -> str:
