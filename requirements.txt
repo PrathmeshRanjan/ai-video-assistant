@@ -9,14 +9,5 @@ langchain
 langchain-chroma
 langchain-google-genai
 langchain-groq
-langchain-mistralai
 langchain-text-splitters
-langchain-community
 chromadb
-langchain
-langchain-text-splitters
-python-dotenv
-langchain-google-genai
-langchain-chroma
-langchain-groq
-langchain-mistralai
