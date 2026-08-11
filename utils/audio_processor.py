@@ -1,37 +1,57 @@
+import os
+from pathlib import Path
+
 import yt_dlp          # downloads audio from YouTube and other platforms
 from pydub import AudioSegment  # audio manipulation: format conversion and chunking
-import os
 
 DOWNLOAD_DIR = 'downloads'
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-def download_youtube_audio(url: str) -> str:
-    # yt-dlp template: fills in video title and original container extension at runtime
-    output_path = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
-    ydl_opts = {
-        "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio[ext=mp4]/bestaudio/best",
-        # android client exposes formats that web client restricts on cloud IPs
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+def _youtube_opts(output_path: str, cookie_path: str | None, format_selector: str) -> dict:
+    opts = {
+        "format": format_selector,
         "outtmpl": output_path,
+        "noplaylist": True,
+        "cachedir": False,
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         },
-        # use cookies.txt if present (upload to repo root for age-restricted/private videos)
-        **({"cookiefile": "cookies.txt"} if os.path.exists("cookies.txt") else {}),
         "postprocessors": [
             {
-                "key": "FFmpegExtractAudio",  # remux/transcode to WAV via ffmpeg after download
+                "key": "FFmpegExtractAudio",
                 "preferredcodec": "wav",
                 "preferredquality": "192",
             }
         ],
-        "quiet": True,                    # suppress yt-dlp console output
+        "quiet": True,
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        # prepare_filename returns the pre-conversion name; manually fix extension after ffmpeg remux
-        filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav").replace(".mp4", ".wav")
-    return filename
+    if cookie_path:
+        opts["cookiefile"] = cookie_path
+    return opts
+
+def download_youtube_audio(url: str, cookie_path: str | None = None) -> str:
+    # yt-dlp template: fills in video title and original container extension at runtime
+    output_path = os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s")
+    format_selectors = [
+        "bestaudio/best[acodec!=none]/best",
+        "bestaudio[ext=m4a]/bestaudio[ext=webm]/best[acodec!=none]/best",
+        "18/best",
+    ]
+
+    last_error = None
+    for format_selector in format_selectors:
+        ydl_opts = _youtube_opts(output_path, cookie_path, format_selector)
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                return str(Path(ydl.prepare_filename(info)).with_suffix(".wav"))
+        except yt_dlp.utils.DownloadError as exc:
+            last_error = exc
+
+    raise RuntimeError(
+        "Could not download audio from this YouTube link. If it is age-restricted, private, "
+        "or blocked on Streamlit Cloud, try uploading a fresh cookies.txt export."
+    ) from last_error
 
 def convert_to_wav(input_path: str) -> str:
     output_path = os.path.splitext(input_path)[0] + "_converted.wav"
@@ -55,11 +75,11 @@ def chunk_audio(wav_path: str, chunk_seconds: int = 600) -> list:
 
     return chunks
 
-def process_input(source: str) -> list:
+def process_input(source: str, cookie_path: str | None = None) -> list:
     # route to downloader or local converter based on whether source is a URL
     if source.startswith("http://") or source.startswith("https://"):
         print("Detected YouTube URL. Downloading audio...")
-        wav_path = download_youtube_audio(source)
+        wav_path = download_youtube_audio(source, cookie_path=cookie_path)
     else:
         print("Detected local file. Converting to WAV...")
         wav_path = convert_to_wav(source)
