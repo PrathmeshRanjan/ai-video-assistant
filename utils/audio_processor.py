@@ -3,6 +3,7 @@ from pathlib import Path
 
 import yt_dlp          # downloads audio from YouTube and other platforms
 from pydub import AudioSegment  # audio manipulation: format conversion and chunking
+from pytubefix import YouTube
 
 DOWNLOAD_DIR = 'downloads'
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -50,10 +51,26 @@ def download_youtube_audio(url: str, cookie_path: str | None = None) -> str:
         except yt_dlp.utils.DownloadError as exc:
             last_error = exc
 
-    raise RuntimeError(
-        "Could not download audio from this YouTube link. Last yt-dlp error: "
-        f"{last_error}"
-    ) from last_error
+    try:
+        return download_youtube_audio_with_pytubefix(url)
+    except Exception as fallback_error:
+        raise RuntimeError(
+            "Could not download audio from this YouTube link. "
+            f"yt-dlp error: {last_error}. pytubefix fallback error: {fallback_error}"
+        ) from fallback_error
+
+def download_youtube_audio_with_pytubefix(url: str) -> str:
+    yt = YouTube(url, "ANDROID_VR")
+    stream = yt.streams.filter(only_audio=True).order_by("abr").desc().first()
+    if stream is None:
+        raise RuntimeError("No audio-only streams were found.")
+
+    downloaded_path = stream.download(
+        output_path=DOWNLOAD_DIR,
+        filename=f"{yt.video_id}-pytubefix",
+        skip_existing=False,
+    )
+    return convert_to_wav(downloaded_path)
 
 def convert_to_wav(input_path: str) -> str:
     output_path = os.path.splitext(input_path)[0] + "_converted.wav"

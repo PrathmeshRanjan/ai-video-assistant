@@ -1,5 +1,6 @@
 yt-dlp[default]>=2026.7.4
 pydub
+pytubefix>=10.11.0
 audioop-lts
 openai-whisper
 streamlit
