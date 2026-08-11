@@ -1,6 +1,6 @@
 # AI Video Assistant
 
-This assistant can turn long videos into useful knowledge using a Python AI pipeline powered by Streamlit, a CLI interface, yt-dlp, FFmpeg, pydub, OpenAI Whisper, Sarvam AI, LangChain, Groq's `llama-3.3-70b-versatile`, Google Gemini embeddings, ChromaDB, python-dotenv, and uv-based dependency management.
+This assistant can turn long videos into useful knowledge using a Python AI pipeline powered by Streamlit, a CLI interface, yt-dlp, FFmpeg, pydub, OpenAI Whisper, Sarvam AI, LangChain, Groq's `llama-3.3-70b-versatile`, Google Gemini embeddings, and ChromaDB. It supports multiple languages, with Hindi and other supported Indian-language transcription handled by Sarvam AI.
 
 Paste a YouTube URL or upload a local media file, and the app downloads the audio, transcribes it, summarizes the content, extracts structured insights, builds a searchable knowledge index, and lets you chat with the video transcript.
 
