@@ -184,14 +184,7 @@ with st.sidebar:
                 "url", placeholder="https://youtube.com/watch?v=...",
                 label_visibility="collapsed",
             )
-            cookies_file = None
-            with st.expander("🍪 YouTube cookies (optional)"):
-                st.caption("Use this only if YouTube blocks the link on Streamlit Cloud. Export cookies.txt from your browser using the [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) extension.")
-                cookies_file = st.file_uploader("cookies.txt", type=["txt"], label_visibility="collapsed")
-                if cookies_file:
-                    st.success("Cookies loaded for this video only ✓")
         else:
-            cookies_file = None
             uploaded = st.file_uploader(
                 "Upload", type=["mp4", "mp3", "wav", "m4a", "webm"],
                 label_visibility="collapsed",
@@ -211,16 +204,10 @@ with st.sidebar:
         if process_btn and source:
             st.session_state.messages = []
             sid = _session_id(source)
-            cookie_path = None
             try:
-                if cookies_file:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp_cookies:
-                        tmp_cookies.write(cookies_file.getvalue())
-                        cookie_path = tmp_cookies.name
-
                 with st.status("Processing video…", expanded=True) as status:
                     st.write("🎵 Downloading & chunking audio…")
-                    chunks = process_input(source, cookie_path=cookie_path)
+                    chunks = process_input(source)
 
                     st.write("🗣️ Transcribing audio…")
                     transcript = transcribe_auto(chunks)
@@ -254,9 +241,6 @@ with st.sidebar:
 
             except Exception as e:
                 st.error(f"Error: {e}")
-            finally:
-                if cookie_path and Path(cookie_path).exists():
-                    Path(cookie_path).unlink()
 
     # ── Resume Session Mode ────────────────────────────────────────────────────
     else:

@@ -1,76 +1,31 @@
-import os
-from pathlib import Path
-
 import yt_dlp          # downloads audio from YouTube and other platforms
 from pydub import AudioSegment  # audio manipulation: format conversion and chunking
-from pytubefix import YouTube
+import os
 
 DOWNLOAD_DIR = 'downloads'
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-def _youtube_opts(output_path: str, cookie_path: str | None, format_selector: str) -> dict:
-    opts = {
-        "format": format_selector,
+def download_youtube_audio(url: str) -> str:
+    # yt-dlp template: fills in video title and original container extension at runtime
+    output_path = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
+    ydl_opts = {
+        "format": "bestaudio/best",       # prefer audio-only stream; fall back to best muxed
         "outtmpl": output_path,
-        "noplaylist": True,
-        "cachedir": False,
-        "js_runtimes": {"node": {}},
-        "remote_components": {"ejs:github"},
-        "http_headers": {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-        },
+        "cookiesfrombrowser": ("chrome",), # passes your Chrome cookies to bypass YouTube 403s
         "postprocessors": [
             {
-                "key": "FFmpegExtractAudio",
+                "key": "FFmpegExtractAudio",  # remux/transcode to WAV via ffmpeg after download
                 "preferredcodec": "wav",
                 "preferredquality": "192",
             }
         ],
-        "quiet": True,
+        "quiet": True,                    # suppress yt-dlp console output
     }
-    if cookie_path:
-        opts["cookiefile"] = cookie_path
-    return opts
-
-def download_youtube_audio(url: str, cookie_path: str | None = None) -> str:
-    # yt-dlp template: fills in video title and original container extension at runtime
-    output_path = os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s")
-    format_selectors = [
-        "bestaudio/best[acodec!=none]/best",
-        "bestaudio[ext=m4a]/bestaudio[ext=webm]/best[acodec!=none]/best",
-        "18/best",
-    ]
-
-    last_error = None
-    for format_selector in format_selectors:
-        ydl_opts = _youtube_opts(output_path, cookie_path, format_selector)
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                return str(Path(ydl.prepare_filename(info)).with_suffix(".wav"))
-        except yt_dlp.utils.DownloadError as exc:
-            last_error = exc
-
-    try:
-        return download_youtube_audio_with_pytubefix(url)
-    except Exception as fallback_error:
-        raise RuntimeError(
-            "Could not download audio from this YouTube link. "
-            f"yt-dlp error: {last_error}. pytubefix fallback error: {fallback_error}"
-        ) from fallback_error
-
-def download_youtube_audio_with_pytubefix(url: str) -> str:
-    yt = YouTube(url, "ANDROID_VR")
-    stream = yt.streams.filter(only_audio=True).order_by("abr").desc().first()
-    if stream is None:
-        raise RuntimeError("No audio-only streams were found.")
-
-    downloaded_path = stream.download(
-        output_path=DOWNLOAD_DIR,
-        filename=f"{yt.video_id}-pytubefix",
-        skip_existing=False,
-    )
-    return convert_to_wav(downloaded_path)
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        # prepare_filename returns the pre-conversion name; manually fix extension after ffmpeg remux
+        filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
+    return filename
 
 def convert_to_wav(input_path: str) -> str:
     output_path = os.path.splitext(input_path)[0] + "_converted.wav"
@@ -94,11 +49,11 @@ def chunk_audio(wav_path: str, chunk_seconds: int = 600) -> list:
 
     return chunks
 
-def process_input(source: str, cookie_path: str | None = None) -> list:
+def process_input(source: str) -> list:
     # route to downloader or local converter based on whether source is a URL
     if source.startswith("http://") or source.startswith("https://"):
         print("Detected YouTube URL. Downloading audio...")
-        wav_path = download_youtube_audio(source, cookie_path=cookie_path)
+        wav_path = download_youtube_audio(source)
     else:
         print("Detected local file. Converting to WAV...")
         wav_path = convert_to_wav(source)

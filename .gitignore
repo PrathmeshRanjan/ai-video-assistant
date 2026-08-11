@@ -1,6 +1,4 @@
 .env
-cookies.txt
-__pycache__/
 */__pycache__
 downloads/
 chroma-db/
@@ -9,4 +7,3 @@ chroma-db/
 *.mp4
 *.webm
 *.m4a
-uv.lock
