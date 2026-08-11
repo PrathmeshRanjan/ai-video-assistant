@@ -184,6 +184,14 @@ with st.sidebar:
                 "url", placeholder="https://youtube.com/watch?v=...",
                 label_visibility="collapsed",
             )
+            with st.expander("🍪 YouTube cookies (required on cloud)"):
+                st.caption("Cloud servers get blocked by YouTube. Export cookies.txt from your browser using the [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) extension.")
+                cookies_file = st.file_uploader("cookies.txt", type=["txt"], label_visibility="collapsed")
+                if cookies_file:
+                    # save to working directory so audio_processor picks it up automatically
+                    with open("cookies.txt", "wb") as f:
+                        f.write(cookies_file.read())
+                    st.success("Cookies loaded ✓")
         else:
             uploaded = st.file_uploader(
                 "Upload", type=["mp4", "mp3", "wav", "m4a", "webm"],
