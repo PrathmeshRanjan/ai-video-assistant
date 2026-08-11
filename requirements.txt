@@ -3,6 +3,16 @@ pydub
 audioop-lts
 openai-whisper
 streamlit
+sarvamai
+python-dotenv
+langchain
+langchain-chroma
+langchain-google-genai
+langchain-groq
+langchain-mistralai
+langchain-text-splitters
+langchain-community
+chromadb
 langchain
 langchain-text-splitters
 python-dotenv
